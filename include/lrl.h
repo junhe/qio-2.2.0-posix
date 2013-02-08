@@ -32,7 +32,8 @@ extern "C"
 typedef char* LIME_type;
 
 typedef struct {
-  FILE *file;
+  //FILE *file;
+  int filefd;
   LimeWriter *dg;
 } LRL_FileWriter;
 

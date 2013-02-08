@@ -79,19 +79,21 @@ LRL_FileWriter *LRL_open_write_file(const char *filename, int mode)
 
   /* Open according to requested mode */
   if(mode == LRL_APPEND){
-    fw->file = DCAPL(fopen)(filename,"a");
+    //fw->file = DCAPL(fopen)(filename,"a");
+    assert(0); // don't use this.    
   }
   else{
-    fw->file = DCAPL(fopen)(filename,"w");
+    //fw->file = DCAPL(fopen)(filename,"w");
+    fw->filefd = open(filename, O_CREAT|O_WRONLY, 0666);
   }
 
-  if (fw->file == NULL){
+  if (fw->filefd == -1){
     printf("LRL_open_write_file: failed to open %s for writing\n",
 	   filename);
     return NULL;
   }
 
-  fw->dg = limeCreateWriter(fw->file);
+  fw->dg = limeCreateWriter(fw->filefd);
   if (fw->dg == (LimeWriter *)NULL){
     printf("LRL_open_write_file: limeCreateWriter failed\n");
     return NULL;
@@ -632,7 +634,7 @@ int LRL_close_write_file(LRL_FileWriter *fw)
     return LRL_SUCCESS;
 
   limeDestroyWriter(fw->dg);
-  DCAP(fclose)(fw->file);
+  DCAP(close)(fw->filefd);
   free(fw);
 
   return LRL_SUCCESS;

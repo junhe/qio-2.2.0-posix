@@ -9,12 +9,12 @@ lime_misconfiguration_fseeko_not_declared;
 
 #include "lime_fseeko.h"
 
-int fseeko(FILE *stream, off_t offset, int whence) {
-  return fseek(stream, (long)offset, whence);
+int fseeko(int fd, off_t offset, int whence) {
+  return lseek(fd, (long)offset, whence);
 }
  
-off_t ftello(FILE *stream) {
-  return (off_t)ftell(stream);
+off_t ftello(int fd) {
+  return (off_t)lseek(fd, 0, SEEK_CUR);
 }
 
 #endif
