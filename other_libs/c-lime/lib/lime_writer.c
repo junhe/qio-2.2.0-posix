@@ -173,7 +173,8 @@ int limeWriteRecordData( void *source, n_uint64_t *nbytes, LimeWriter* d)
     }
     //ret_val = DCAP(fwrite)((const void *)source, sizeof(unsigned char), 
     //		     (size_t)bytes_to_write, d->fp);
-    ret_val = write( (const void *)source, sizeof(unsigned char)*(size_t)bytes_to_write, d->fd);
+    ret_val = write( d->fd, (const void *)source, 
+                     sizeof(unsigned char)*(size_t)bytes_to_write);
     
     *nbytes = ret_val;
     
