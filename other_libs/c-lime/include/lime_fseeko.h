@@ -11,8 +11,8 @@
 #include <stdlib.h>
 #include <sys/types.h>
 
-int fseeko(FILE *stream, off_t offset, int whence);
-off_t ftello(FILE *stream);
+int fseeko(int fd, off_t offset, int whence);
+off_t ftello(int fd);
 
 #else
 #include <stdio.h>

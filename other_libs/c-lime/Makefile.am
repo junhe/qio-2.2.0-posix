@@ -1,1 +1,1 @@
-SUBDIRS = include lib examples doc
+SUBDIRS = include lib doc
