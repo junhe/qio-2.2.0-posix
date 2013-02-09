@@ -173,7 +173,8 @@ int limeWriteRecordData( void *source, n_uint64_t *nbytes, LimeWriter* d)
     }
     //ret_val = DCAP(fwrite)((const void *)source, sizeof(unsigned char), 
     //		     (size_t)bytes_to_write, d->fp);
-    ret_val = write( (const void *)source, sizeof(unsigned char)*(size_t)bytes_to_write, d->fd);
+    ret_val = write( d->fd, (const void *)source, 
+                     sizeof(unsigned char)*(size_t)bytes_to_write);
     
     *nbytes = ret_val;
     
@@ -204,7 +205,7 @@ int limeWriterCloseRecord(LimeWriter *d)
 {
 
   off_t seek_cur;
-  int status;
+  off_t status;
   size_t pad;
   unsigned char padbuf[7] = {0x00,0x00,0x00,0x00,0x00,0x00,0x00};
   size_t ret_val;
@@ -217,7 +218,7 @@ int limeWriterCloseRecord(LimeWriter *d)
     //	    SEEK_SET);
     status = lseek(d->fd, d->rec_start + d->bytes_total + d->bytes_pad, SEEK_SET);
     if(status < 0){
-      printf("fseek returned %d\n",status);fflush(stdout);
+      printf("fseek returned %lld\n",status);fflush(stdout);
       return LIME_ERR_SEEK;
     }
     return LIME_SUCCESS;
@@ -250,12 +251,12 @@ int limeWriterCloseRecord(LimeWriter *d)
 
 int skip_lime_record_binary_header(FILE *fp)
 {
-  int status;
+  off_t status;
 
   //status = DCAPL(fseeko)(fp, (off_t)LIME_HDR_LENGTH, SEEK_CUR);
   status = lseek(fp, (off_t)LIME_HDR_LENGTH, SEEK_CUR);
   if(status < 0){
-    printf("fseek returned %d\n",status);fflush(stdout);
+    printf("fseek returned %lld\n",status);fflush(stdout);
     return LIME_ERR_SEEK;
   }
   return LIME_SUCCESS;
@@ -320,7 +321,7 @@ int write_lime_record_binary_header(int fd, LimeRecordHeader *h)
 int skipWriterBytes(LimeWriter *w, off_t bytes_to_skip)
 {
 
-  int status;
+  off_t status;
   n_uint64_t new_rec_ptr;  /* The new record pointer */
   n_uint64_t offset;
 
@@ -355,7 +356,7 @@ int skipWriterBytes(LimeWriter *w, off_t bytes_to_skip)
   status = DCAPL(lseek)(w->fd, (off_t)offset, SEEK_SET);
 
   if(status < 0){
-    printf("fseek returned %d\n",status);fflush(stdout);
+    printf("fseek returned %lld\n",status);fflush(stdout);
     return LIME_ERR_SEEK;
   }
 
@@ -366,7 +367,7 @@ int skipWriterBytes(LimeWriter *w, off_t bytes_to_skip)
 }
 
 int limeWriterSeek(LimeWriter *w, off_t offset, int whence){
-  int status;
+  off_t status;
 
   if(whence == SEEK_CUR){
     status = skipWriterBytes(w, offset);
@@ -390,7 +391,7 @@ int limeWriterSeek(LimeWriter *w, off_t offset, int whence){
    procedure with wsrc, then broadcast master node's writer. */
 
 int limeWriterSetState(LimeWriter *wdest, LimeWriter *wsrc ){
-  int status;
+  off_t status;
 
   /* Set wdest writer state from wsrc */
   /* We do not copy the file pointer member fp */
@@ -408,7 +409,7 @@ int limeWriterSetState(LimeWriter *wdest, LimeWriter *wsrc ){
   status = lseek(wdest->fd, wdest->rec_start + wdest->rec_ptr, 
 			 SEEK_SET);
   if(status < 0){
-    printf("fseek returned %d\n",status);fflush(stdout);
+    printf("fseek returned %lld\n",status);fflush(stdout);
     return LIME_ERR_SEEK;
   }
   return LIME_SUCCESS;
