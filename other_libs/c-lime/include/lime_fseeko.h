@@ -11,7 +11,7 @@
 #include <stdlib.h>
 #include <sys/types.h>
 
-int fseeko(int fd, off_t offset, int whence);
+off_t fseeko(int fd, off_t offset, int whence);
 off_t ftello(int fd);
 
 #else

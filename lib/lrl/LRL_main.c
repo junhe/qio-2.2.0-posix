@@ -486,7 +486,7 @@ int LRL_seek_read_record(LRL_RecordReader *rr, off_t offset)
 
 int LRL_seek_write_record(LRL_RecordWriter *rw, off_t offset)
 {
-  int status;
+  off_t status;
 
   if (rw == NULL){
     printf("LRL_seek_write_record: null record writer\n");

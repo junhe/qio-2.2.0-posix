@@ -130,7 +130,7 @@ int limeWriteRecordHeader( LimeRecordHeader *props, LimeWriter *d)
   d->bytes_left   = props->data_length;
   d->bytes_total  = props->data_length;
   d->rec_ptr      = 0;
-  d->rec_start    = lseek(d->fd, 0, SEEK_CUR);
+  d->rec_start    = lseek64(d->fd, 0, SEEK_CUR);
   d->bytes_pad    = lime_padding(props->data_length);
   d->header_nextP = 0;
 
@@ -216,9 +216,11 @@ int limeWriterCloseRecord(LimeWriter *d)
     /* Skip to the header position */
     //status = DCAPL(fseeko)(d->fp, d->rec_start + d->bytes_total + d->bytes_pad,
     //	    SEEK_SET);
-    status = lseek(d->fd, d->rec_start + d->bytes_total + d->bytes_pad, SEEK_SET);
-    if(status < 0){
-      printf("fseek returned %lld\n",status);fflush(stdout);
+    status = lseek64(d->fd, d->rec_start + d->bytes_total + d->bytes_pad, SEEK_SET);
+    if(status == -1){
+      printf("fseek returned %lld seekto %lld sizeof(off_t):%d\n",
+            status, d->rec_start + d->bytes_total + d->bytes_pad, sizeof(off_t));fflush(stdout);
+      perror("lseek64()"); fflush(stderr);
       return LIME_ERR_SEEK;
     }
     return LIME_SUCCESS;
@@ -254,9 +256,11 @@ int skip_lime_record_binary_header(FILE *fp)
   off_t status;
 
   //status = DCAPL(fseeko)(fp, (off_t)LIME_HDR_LENGTH, SEEK_CUR);
-  status = lseek(fp, (off_t)LIME_HDR_LENGTH, SEEK_CUR);
-  if(status < 0){
-    printf("fseek returned %lld\n",status);fflush(stdout);
+  status = lseek64(fp, (off_t)LIME_HDR_LENGTH, SEEK_CUR);
+  if(status == -1){
+    printf("fseek returned %lld seekto %lld sizeof(off_t):%d\n",
+            status, (off_t)LIME_HDR_LENGTH, sizeof(off_t));fflush(stdout);
+    perror("lseek64()"); fflush(stderr);
     return LIME_ERR_SEEK;
   }
   return LIME_SUCCESS;
@@ -353,10 +357,12 @@ int skipWriterBytes(LimeWriter *w, off_t bytes_to_skip)
 	   (unsigned long long)offset);
     return LIME_ERR_SEEK;
   }
-  status = DCAPL(lseek)(w->fd, (off_t)offset, SEEK_SET);
+  status = lseek64(w->fd, (off_t)offset, SEEK_SET);
 
-  if(status < 0){
-    printf("fseek returned %lld\n",status);fflush(stdout);
+  if(status == -1){
+    printf("fseek returned %lld seekto %lld sizeof(off_t):%d\n",
+            status, offset, sizeof(off_t));fflush(stdout);
+    perror("lseek64()"); fflush(stderr);
     return LIME_ERR_SEEK;
   }
 
@@ -406,10 +412,11 @@ int limeWriterSetState(LimeWriter *wdest, LimeWriter *wsrc ){
   wdest->isLastP      = wsrc->isLastP      ;
 
   /* Now make the system state agree with the writer state */
-  status = lseek(wdest->fd, wdest->rec_start + wdest->rec_ptr, 
+  status = lseek64(wdest->fd, wdest->rec_start + wdest->rec_ptr, 
 			 SEEK_SET);
-  if(status < 0){
-    printf("fseek returned %lld\n",status);fflush(stdout);
+  if(status == -1){
+    printf("fseek returned %lld", status);
+    perror("lseek64()"); fflush(stderr);
     return LIME_ERR_SEEK;
   }
   return LIME_SUCCESS;
