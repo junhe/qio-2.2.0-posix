@@ -14,11 +14,11 @@
 
 
 /* Forward declaration */
-int write_lime_record_binary_header(int fd, LimeRecordHeader *h);
-int skip_lime_record_binary_header(FILE *fp);
+int write_lime_record_binary_header(MPI_File fd, LimeRecordHeader *h);
+int skip_lime_record_binary_header(MPI_File fh);
 int skipWriterBytes(LimeWriter *w, off_t bytes_to_skip);
 
-LimeWriter* limeCreateWriter(int fd)
+LimeWriter* limeCreateWriter(MPI_File fd)
 {
   LimeWriter* ret_val;
 
@@ -130,7 +130,8 @@ int limeWriteRecordHeader( LimeRecordHeader *props, LimeWriter *d)
   d->bytes_left   = props->data_length;
   d->bytes_total  = props->data_length;
   d->rec_ptr      = 0;
-  d->rec_start    = lseek64(d->fd, 0, SEEK_CUR);
+  //d->rec_start    = ftello(d->fd);
+  MPI_File_get_position(d->fd, &(d->rec_start));
   d->bytes_pad    = lime_padding(props->data_length);
   d->header_nextP = 0;
 
@@ -142,7 +143,7 @@ int limeWriteRecordHeader( LimeRecordHeader *props, LimeWriter *d)
 int limeWriteRecordData( void *source, n_uint64_t *nbytes, LimeWriter* d)
 {
   n_uint64_t bytes_to_write;
-  size_t ret_val;
+  int ret_val;
 
 #ifdef LIME_DEBUG
   fprintf(stderr, "In LimeWriteRecordData\n");
@@ -173,12 +174,17 @@ int limeWriteRecordData( void *source, n_uint64_t *nbytes, LimeWriter* d)
     }
     //ret_val = DCAP(fwrite)((const void *)source, sizeof(unsigned char), 
     //		     (size_t)bytes_to_write, d->fp);
-    ret_val = write( d->fd, (const void *)source, 
-                     sizeof(unsigned char)*(size_t)bytes_to_write);
+    int status;
+    ret_val = MPI_File_write( d->fd, 
+                                         (const void *)source, 
+                             sizeof(unsigned char)*(size_t)bytes_to_write,
+                             MPI_CHAR,
+                             &status                             
+				);
     
-    *nbytes = ret_val;
+    *nbytes = sizeof(unsigned char)*(size_t)bytes_to_write;
     
-    if( ret_val != bytes_to_write )
+    if( ret_val != MPI_SUCCESS )
       return LIME_ERR_WRITE;
     
     /* We succeeded */
@@ -205,10 +211,10 @@ int limeWriterCloseRecord(LimeWriter *d)
 {
 
   off_t seek_cur;
-  off_t status;
+  int status;
   size_t pad;
   unsigned char padbuf[7] = {0x00,0x00,0x00,0x00,0x00,0x00,0x00};
-  size_t ret_val;
+  int ret_val;
 
   /* Should we be writing a header instead now? */
   /* (If so, we have already closed the record) */
@@ -216,11 +222,11 @@ int limeWriterCloseRecord(LimeWriter *d)
     /* Skip to the header position */
     //status = DCAPL(fseeko)(d->fp, d->rec_start + d->bytes_total + d->bytes_pad,
     //	    SEEK_SET);
-    status = lseek64(d->fd, d->rec_start + d->bytes_total + d->bytes_pad, SEEK_SET);
-    if(status == -1){
+    status = MPI_File_seek(d->fd, d->rec_start + d->bytes_total + d->bytes_pad, MPI_SEEK_SET);
+    if(status != MPI_SUCCESS){
       printf("fseek returned %lld seekto %lld sizeof(off_t):%d\n",
             status, d->rec_start + d->bytes_total + d->bytes_pad, sizeof(off_t));fflush(stdout);
-      perror("lseek64()"); fflush(stderr);
+      fflush(stderr);
       return LIME_ERR_SEEK;
     }
     return LIME_SUCCESS;
@@ -236,9 +242,13 @@ int limeWriterCloseRecord(LimeWriter *d)
   if( pad > 0 ) { 
     //ret_val = DCAP(fwrite)((const void *)padbuf, sizeof(unsigned char),
     //	     pad, d->fp);
-    ret_val = write(d->fd, (const void *)padbuf, sizeof(unsigned char)*pad);
-	
-    if( ret_val != pad )
+    //ret_val = write(d->fd, (const void *)padbuf, sizeof(unsigned char)*pad);
+    ret_val = MPI_File_write(d->mpifh, 
+                                        (const void *)padbuf,
+                                        sizeof(unsigned char)*pad,
+                                        MPI_CHAR,
+                                        &status);
+    if( ret_val != MPI_SUCCESS )
       return LIME_ERR_WRITE;
   }
   
@@ -251,27 +261,28 @@ int limeWriterCloseRecord(LimeWriter *d)
   return LIME_SUCCESS;
 }
 
-int skip_lime_record_binary_header(FILE *fp)
+int skip_lime_record_binary_header(MPI_File fh)
 {
   off_t status;
 
   //status = DCAPL(fseeko)(fp, (off_t)LIME_HDR_LENGTH, SEEK_CUR);
-  status = lseek64(fp, (off_t)LIME_HDR_LENGTH, SEEK_CUR);
-  if(status == -1){
+  status = MPI_File_seek(fh, (off_t)LIME_HDR_LENGTH, MPI_SEEK_CUR);
+  if(status != MPI_SUCCESS){
     printf("fseek returned %lld seekto %lld sizeof(off_t):%d\n",
-            status, (off_t)LIME_HDR_LENGTH, sizeof(off_t));fflush(stdout);
-    perror("lseek64()"); fflush(stderr);
+            status, (off_t)LIME_HDR_LENGTH, sizeof(off_t));
+    fflush(stdout);    
     return LIME_ERR_SEEK;
   }
   return LIME_SUCCESS;
 }
 
 
-int write_lime_record_binary_header(int fd, LimeRecordHeader *h)
+int write_lime_record_binary_header(MPI_File fh, LimeRecordHeader *h)
 {
 
   int i;
   int ret_val;
+  int status;
 
 #ifdef LIME_DEBUG
   fprintf(stderr, "In write_lime_record_binary_header\n");
@@ -307,10 +318,13 @@ int write_lime_record_binary_header(int fd, LimeRecordHeader *h)
   /* Write the header */
   //ret_val = DCAP(fwrite)((const void *)lime_header.int64, 
   //			 sizeof(n_uint64_t), MAX_HDR64, fp);
-  ret_val = write(fd, (const void *)lime_header.int64, 
-                         sizeof(n_uint64_t) *MAX_HDR64);
+  ret_val = MPI_File_write(fh, 
+                                      (const void *)lime_header.int64, 
+                                      sizeof(n_uint64_t) *MAX_HDR64,
+                                      MPI_CHAR,
+                                      &status);
 
-  if( ret_val < sizeof(n_uint64_t) *MAX_HDR64  ) { 
+  if( ret_val != MPI_SUCCESS  ) { 
     return LIME_ERR_WRITE;
   }
 
@@ -357,12 +371,11 @@ int skipWriterBytes(LimeWriter *w, off_t bytes_to_skip)
 	   (unsigned long long)offset);
     return LIME_ERR_SEEK;
   }
-  status = lseek64(w->fd, (off_t)offset, SEEK_SET);
+  status = MPI_File_seek(w->mpifh, (off_t)offset, MPI_SEEK_SET);
 
-  if(status == -1){
+  if(status != MPI_SUCCESS){
     printf("fseek returned %lld seekto %lld sizeof(off_t):%d\n",
             status, offset, sizeof(off_t));fflush(stdout);
-    perror("lseek64()"); fflush(stderr);
     return LIME_ERR_SEEK;
   }
 
@@ -412,11 +425,10 @@ int limeWriterSetState(LimeWriter *wdest, LimeWriter *wsrc ){
   wdest->isLastP      = wsrc->isLastP      ;
 
   /* Now make the system state agree with the writer state */
-  status = lseek64(wdest->fd, wdest->rec_start + wdest->rec_ptr, 
-			 SEEK_SET);
-  if(status == -1){
+  status = MPI_File_seek(wdest->mpifh, wdest->rec_start + wdest->rec_ptr, 
+			 MPI_SEEK_SET);
+  if(status != MPI_SUCCESS){
     printf("fseek returned %lld", status);
-    perror("lseek64()"); fflush(stderr);
     return LIME_ERR_SEEK;
   }
   return LIME_SUCCESS;

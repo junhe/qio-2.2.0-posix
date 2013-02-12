@@ -9,12 +9,14 @@ lime_misconfiguration_fseeko_not_declared;
 
 #include "lime_fseeko.h"
 
-off_t fseeko(int fd, off_t offset, int whence) {
-  return lseek64(fd, (long)offset, whence);
+off_t fseeko(MPI_File fd, MPI_Offset offset, int whence) {
+  return MPI_File_seek(fd, offset, whence);
 }
  
-off_t ftello(int fd) {
-  return (off_t)lseek64(fd, 0, SEEK_CUR);
+off_t ftello(MPI_File fd) {
+  MPI_Offset off;
+  MPI_File_get_position(fd, &off);
+  return off;
 }
 
 #endif

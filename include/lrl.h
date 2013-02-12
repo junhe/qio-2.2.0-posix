@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <lime.h>
+#include <mpi.h>
 
 /* Return codes */
 #define LRL_SUCCESS      ( 0)
@@ -33,7 +34,8 @@ typedef char* LIME_type;
 
 typedef struct {
   //FILE *file;
-  int filefd;
+  //int filefd;
+  MPI_File mpifh;
   LimeWriter *dg;
 } LRL_FileWriter;
 

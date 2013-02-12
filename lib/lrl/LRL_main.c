@@ -83,22 +83,26 @@ LRL_FileWriter *LRL_open_write_file(const char *filename, int mode)
     return NULL;
 
   /* Open according to requested mode */
+  int ret;
   if(mode == LRL_APPEND){
     //fw->file = DCAPL(fopen)(filename,"a");
     assert(0); // don't use this.    
   }
   else{
     //fw->file = DCAPL(fopen)(filename,"w");
-    fw->filefd = open(filename, O_CREAT|O_WRONLY, 0666);
+    //fw->filefd = open(filename, O_CREAT|O_WRONLY, 0666);
+    ret = MPI_File_open(MPI_COMM_SELF, filename, 
+                          MPI_MODE_CREATE|MPI_MODE_WRONLY,
+                          MPI_INFO_NULL, &fw->mpifh);
   }
 
-  if (fw->filefd == -1){
+  if (ret != MPI_SUCCESSS){
     printf("LRL_open_write_file: failed to open %s for writing\n",
 	   filename);
     return NULL;
   }
 
-  fw->dg = limeCreateWriter(fw->filefd);
+  fw->dg = limeCreateWriter(fw->mpifh);
   if (fw->dg == (LimeWriter *)NULL){
     printf("LRL_open_write_file: limeCreateWriter failed\n");
     return NULL;
@@ -639,7 +643,7 @@ int LRL_close_write_file(LRL_FileWriter *fw)
     return LRL_SUCCESS;
 
   limeDestroyWriter(fw->dg);
-  DCAP(close)(fw->filefd);
+  MPI_File_close(fw->mpifh);
   free(fw);
 
   return LRL_SUCCESS;

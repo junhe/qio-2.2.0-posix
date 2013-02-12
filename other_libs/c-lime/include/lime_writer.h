@@ -11,7 +11,8 @@ typedef struct {
   int first_record;        /**< Are we to write the first record */
   int last_written;        /**< has the last record been written */
   //FILE* fp;                /**< What file are we writing to */
-  int fd;
+  //int fd;
+  MPI_File mpifh;
   int header_nextP;        /**< Are we to write a header next or data */
   n_uint64_t bytes_total;       /**< Total no of bytes in this record */
   n_uint64_t bytes_left;        /**< The number of bytes left to write in
@@ -30,7 +31,7 @@ typedef struct {
     \returns a LimeWriter* which you need for further
     transactions
 */
-LimeWriter* limeCreateWriter(int fd);
+LimeWriter* limeCreateWriter(MPI_File fd);
 
 /** \brief Close a lime generator */
 int limeDestroyWriter(LimeWriter *s);

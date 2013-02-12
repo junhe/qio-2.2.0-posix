@@ -11,8 +11,8 @@
 #include <stdlib.h>
 #include <sys/types.h>
 
-off_t fseeko(int fd, off_t offset, int whence);
-off_t ftello(int fd);
+off_t fseeko(MPI_File fd, off_t offset, int whence);
+off_t ftello(MPI_File fd);
 
 #else
 #include <stdio.h>
