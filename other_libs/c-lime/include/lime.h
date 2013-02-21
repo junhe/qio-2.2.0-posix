@@ -7,4 +7,5 @@
 #include <lime_header.h>
 #include <lime_writer.h>
 #include <lime_reader.h>
+#include "mpi.h"
 #endif

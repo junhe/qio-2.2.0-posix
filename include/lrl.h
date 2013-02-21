@@ -6,7 +6,6 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <lime.h>
-#include <mpi.h>
 
 /* Return codes */
 #define LRL_SUCCESS      ( 0)

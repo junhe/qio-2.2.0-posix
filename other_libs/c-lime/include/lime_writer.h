@@ -5,6 +5,7 @@
 #include <lime_header.h>
 #include <sys/types.h>
 #include <stdio.h>
+#include "mpi.h"
 
 /** \brief This describes the state of LIME */
 typedef struct { 

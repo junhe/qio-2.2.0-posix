@@ -11,6 +11,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <assert.h>
+#include "mpi.h"
 
 /** 
  * Open a file for reading 
@@ -91,12 +92,12 @@ LRL_FileWriter *LRL_open_write_file(const char *filename, int mode)
   else{
     //fw->file = DCAPL(fopen)(filename,"w");
     //fw->filefd = open(filename, O_CREAT|O_WRONLY, 0666);
-    ret = MPI_File_open(MPI_COMM_SELF, filename, 
+    ret = MPI_File_open(MPI_COMM_WORLD, filename, 
                           MPI_MODE_CREATE|MPI_MODE_WRONLY,
                           MPI_INFO_NULL, &fw->mpifh);
   }
 
-  if (ret != MPI_SUCCESSS){
+  if (ret != MPI_SUCCESS){
     printf("LRL_open_write_file: failed to open %s for writing\n",
 	   filename);
     return NULL;
@@ -643,7 +644,7 @@ int LRL_close_write_file(LRL_FileWriter *fw)
     return LRL_SUCCESS;
 
   limeDestroyWriter(fw->dg);
-  MPI_File_close(fw->mpifh);
+  MPI_File_close(&fw->mpifh);
   free(fw);
 
   return LRL_SUCCESS;
